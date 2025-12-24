@@ -11,7 +11,7 @@ import {
     Cog6ToothIcon,
     FolderIcon
 } from '@heroicons/react/24/outline';
-import { UploadZone, ConfigPanel, ProcessingStatus } from '@/components';
+import { UploadZone, ConfigPanel, ProcessingStatus, UserButton } from '@/components';
 import { useProcessingStore } from '@/stores/processing';
 import { formatBytes, generateId } from '@/lib/utils';
 
@@ -121,12 +121,14 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-4">
                             <Link href="/dashboard/history" className="btn btn-ghost btn-sm gap-2">
                                 <FolderIcon className="w-4 h-4" />
-                                History
+                                <span className="hidden sm:inline">History</span>
                             </Link>
                             <Link href="/dashboard/settings" className="btn btn-ghost btn-sm gap-2">
                                 <Cog6ToothIcon className="w-4 h-4" />
-                                Settings
+                                <span className="hidden sm:inline">Settings</span>
                             </Link>
+                            <div className="divider divider-horizontal m-0" />
+                            <UserButton />
                         </div>
                     </div>
                 </div>

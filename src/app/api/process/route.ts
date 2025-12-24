@@ -4,6 +4,11 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { imageOperations } from '@/lib/db/schema';
+import { realESRGAN } from '@/lib/services/realesrgan';
+import { imageQueue } from '@/lib/queue/imageQueue';
 
 // Types
 type Algorithm = 'lanczos3' | 'mitchell' | 'cubic';
@@ -44,6 +49,11 @@ function getSharpKernel(algorithm: Algorithm): SharpKernel {
 
 export async function POST(request: NextRequest) {
     try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         await ensureDirectories();
 
         const formData = await request.formData();
@@ -83,6 +93,7 @@ export async function POST(request: NextRequest) {
         const fileExtension = path.extname(file.name) || '.jpg';
         const originalFileName = `${operationId}_original${fileExtension}`;
         const processedFileName = `${operationId}_processed${fileExtension}`;
+        const processedPath = path.join(PROCESSED_DIR, processedFileName);
 
         // Convert file to buffer
         const bytes = await file.arrayBuffer();
@@ -109,69 +120,62 @@ export async function POST(request: NextRequest) {
             newHeight = Math.round(originalHeight / config.scaleFactor);
         }
 
-        // Process image
-        const startTime = Date.now();
-        let processedBuffer: Buffer;
+        // Create DB record with queued status
+        await db.insert(imageOperations).values({
+            id: operationId,
+            userId,
+            fileName: file.name,
+            originalSizeBytes: file.size,
+            processedSizeBytes: 0,
+            resolutionOrigin: `${originalWidth}x${originalHeight}`,
+            resolutionResult: `${newWidth}x${newHeight}`,
+            operationType: config.operationType,
+            scaleFactor: config.scaleFactor.toString() as "2" | "4" | "8",
+            algorithmUsed: config.algorithm || 'lanczos3',
+            qualityMode: config.qualityMode || 'balanced',
+            status: 'queued',
+            storagePathOriginal: originalPath,
+            storagePathProcessed: processedPath, // Will be filled by worker
+            progress: 0,
+            metadata: {
+                width: originalWidth,
+                height: originalHeight,
+                fileExtension: fileExtension.replace('.', '')
+            },
+            createdAt: new Date()
+        });
 
-        if (config.operationType === 'downscale') {
-            // Use Sharp for downscaling
-            const kernel = getSharpKernel(config.algorithm || 'lanczos3');
-            processedBuffer = await sharp(buffer)
-                .resize(newWidth, newHeight, {
-                    kernel,
-                    withoutEnlargement: true,
-                })
-                .toBuffer();
-        } else {
-            // For upscaling, use Sharp resize (Real-ESRGAN would be used in production)
-            // Sharp upscaling as fallback
-            processedBuffer = await sharp(buffer)
-                .resize(newWidth, newHeight, {
-                    kernel: 'lanczos3',
-                    fit: 'fill',
-                })
-                .toBuffer();
-        }
-
-        // Get quality setting
-        const qualityMap = { fast: 70, balanced: 85, quality: 95 };
-        const quality = qualityMap[config.qualityMode || 'balanced'];
-
-        // Save processed file with quality optimization
-        const processedPath = path.join(PROCESSED_DIR, processedFileName);
-
-        if (file.type === 'image/jpeg' || fileExtension === '.jpg' || fileExtension === '.jpeg') {
-            await sharp(processedBuffer)
-                .jpeg({ quality })
-                .toFile(processedPath);
-        } else if (file.type === 'image/png') {
-            await sharp(processedBuffer)
-                .png({ compressionLevel: config.qualityMode === 'quality' ? 9 : 6 })
-                .toFile(processedPath);
-        } else {
-            await sharp(processedBuffer)
-                .webp({ quality })
-                .toFile(processedPath);
-        }
-
-        const processingTime = Date.now() - startTime;
-
-        // Get processed file size
-        const processedMetadata = await sharp(processedPath).metadata();
-
-        // Clean up original file (optional, keep for history)
-        // await unlink(originalPath);
+        // Add to Redis queue
+        await imageQueue.add('process-image', {
+            operationId,
+            userId,
+            filePaths: {
+                original: originalPath,
+                processed: processedPath
+            },
+            config: {
+                operationType: config.operationType,
+                scaleFactor: config.scaleFactor,
+                algorithm: config.algorithm,
+                qualityMode: config.qualityMode
+            },
+            metadata: {
+                width: originalWidth,
+                height: originalHeight,
+                size: file.size,
+                fileExtension: fileExtension.replace('.', '')
+            }
+        });
 
         return NextResponse.json({
             success: true,
             operationId,
+            status: 'queued',
             originalUrl: `/uploads/${originalFileName}`,
-            processedUrl: `/processed/${processedFileName}`,
+            // processedUrl will be available after processing
             originalResolution: { width: originalWidth, height: originalHeight },
             processedResolution: { width: newWidth, height: newHeight },
-            originalSize: file.size,
-            processedSize: processedMetadata.size || 0,
-            processingTime,
+            originalSize: file.size
         });
 
     } catch (error) {
