@@ -1,0 +1,28 @@
+import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+    title: "PixelForge - AI-Powered Image Resolution Transformation",
+    description: "Transform your images with AI precision. Upscale, downscale, and enhance images with zero-cost local processing.",
+    keywords: ["image upscaling", "AI image enhancement", "image processing", "resolution transformation"],
+    authors: [{ name: "PixelForge Team" }],
+    openGraph: {
+        title: "PixelForge - AI-Powered Image Resolution Transformation",
+        description: "Transform your images with AI precision",
+        type: "website",
+    },
+};
+
+export default function RootLayout({
+    children,
+}: Readonly<{
+    children: React.ReactNode;
+}>) {
+    return (
+        <html lang="en" data-theme="pixelforge">
+            <body className="antialiased">
+                {children}
+            </body>
+        </html>
+    );
+}
