@@ -1,3 +1,6 @@
+import { loadEnvConfig } from "@next/env";
+loadEnvConfig(process.cwd());
+
 import { Worker, Job } from 'bullmq';
 import { redisConfig } from './config';
 import { JobData, IMAGE_PROCESSING_QUEUE } from './imageQueue';
@@ -8,10 +11,6 @@ import { realESRGAN } from '@/lib/services/realesrgan';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
-
-// Ensure we have environment variables loaded
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
 
 console.log('Starting worker for queue:', IMAGE_PROCESSING_QUEUE);
 

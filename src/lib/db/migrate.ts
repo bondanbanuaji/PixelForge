@@ -1,7 +1,13 @@
+import { loadEnvConfig } from "@next/env";
 import { migrate } from "drizzle-orm/mysql2/migrator";
-import { db, connection } from "./index";
 
 async function main() {
+    // Load environment variables from .env* files
+    loadEnvConfig(process.cwd());
+
+    // Dynamically import db/index so env vars are loaded first
+    const { db, connection } = await import("./index");
+
     console.log("Running migrations...");
     await migrate(db, { migrationsFolder: "./drizzle" });
     console.log("Migrations completed!");
