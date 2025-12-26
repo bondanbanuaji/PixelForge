@@ -1,81 +1,104 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
-const Geometries = () => {
+const Geometries = React.memo(() => {
     const groupRef = useRef<THREE.Group>(null);
 
     useFrame((state) => {
         if (groupRef.current) {
-            groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.1;
-            groupRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.2) * 0.1;
+            groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+            groupRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.1) * 0.05;
         }
     });
 
     return (
         <group ref={groupRef}>
-            <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-                <mesh position={[-2, 1, 0]}>
-                    <octahedronGeometry args={[1, 0]} />
+            <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.5}>
+                <mesh position={[-3, 1, -2]}>
+                    <octahedronGeometry args={[1.2, 0]} />
                     <meshStandardMaterial
                         color="#6366f1"
                         wireframe
                         transparent
-                        opacity={0.3}
+                        opacity={0.2}
                         emissive="#6366f1"
-                        emissiveIntensity={0.5}
+                        emissiveIntensity={0.3}
                     />
                 </mesh>
             </Float>
 
-            <Float speed={1.5} rotationIntensity={0.7} floatIntensity={0.8}>
-                <mesh position={[2, -1, -1]}>
-                    <icosahedronGeometry args={[1.5, 0]} />
+            <Float speed={1} rotationIntensity={0.5} floatIntensity={0.4}>
+                <mesh position={[3, -1, -3]}>
+                    <icosahedronGeometry args={[1.8, 0]} />
                     <meshStandardMaterial
                         color="#a855f7"
                         wireframe
                         transparent
-                        opacity={0.2}
+                        opacity={0.15}
                         emissive="#a855f7"
-                        emissiveIntensity={0.5}
+                        emissiveIntensity={0.3}
                     />
                 </mesh>
             </Float>
 
-            <Float speed={3} rotationIntensity={1} floatIntensity={0.5}>
-                <mesh position={[0, 3, -2]}>
-                    <torusGeometry args={[0.5, 0.2, 16, 100]} />
+            <Float speed={2} rotationIntensity={0.6} floatIntensity={0.3}>
+                <mesh position={[0, 4, -5]}>
+                    <torusGeometry args={[0.6, 0.15, 12, 64]} />
                     <meshStandardMaterial
                         color="#06b6d4"
                         transparent
-                        opacity={0.6}
-                        roughness={0}
-                        metalness={1}
+                        opacity={0.4}
+                        roughness={0.1}
+                        metalness={0.9}
                     />
                 </mesh>
             </Float>
         </group>
     );
-};
+});
 
-export const ThreeDBackground = () => {
+Geometries.displayName = 'Geometries';
+
+export const ThreeDBackground = React.memo(() => {
     return (
         <div className="absolute inset-0 z-0 pointer-events-none">
-            <Canvas camera={{ position: [0, 0, 8], fov: 60 }} gl={{ antialias: true, alpha: true }}>
-                <fog attach="fog" args={['#000', 5, 20]} />
-                <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} intensity={1.0} color="#6366f1" />
-                <pointLight position={[-10, -10, -10]} intensity={0.5} color="#a855f7" />
+            <Canvas
+                camera={{ position: [0, 0, 10], fov: 50 }}
+                gl={{
+                    antialias: false, // Turn off antialias for performance
+                    alpha: true,
+                    powerPreference: "high-performance",
+                    stencil: false,
+                    depth: true
+                }}
+                dpr={[1, 1.5]} // Limit pixel ratio to max 1.5 for performance
+            >
+                <fog attach="fog" args={['#000', 5, 25]} />
+                <ambientLight intensity={0.4} />
+                <pointLight position={[10, 10, 10]} intensity={0.8} color="#6366f1" />
+                <pointLight position={[-10, -10, -10]} intensity={0.3} color="#a855f7" />
 
-                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                <Stars
+                    radius={100}
+                    depth={40}
+                    count={2000} // Reduced count from 5000
+                    factor={4}
+                    saturation={0}
+                    fade
+                    speed={0.5}
+                />
                 <Geometries />
             </Canvas>
 
-            {/* Gradient Overlay to blend with content */}
+            {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black" />
         </div>
     );
-};
+});
+
+ThreeDBackground.displayName = 'ThreeDBackground';
+

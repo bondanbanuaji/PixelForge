@@ -1,18 +1,15 @@
-'use client';
-
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { Suspense } from 'react';
 import { SmoothScroll } from '@/components/ui/SmoothScroll';
 import { Navigation } from '@/components/ui/Navigation';
 import { AnimatedHero } from '@/components/landing/AnimatedHero';
 import { ImageUploadZone } from '@/components/upload/ImageUploadZone';
 import { BeforeAfterSlider } from '@/components/results/BeforeAfterSlider';
-import { ProcessingLoader } from '@/components/ui/ProcessingLoader';
 import { Sparkles, Zap, Shield, Cpu } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // Example images for comparison
 const BEFORE_IMAGE = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop";
-const AFTER_IMAGE = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop"; // Higher res version ideally
+const AFTER_IMAGE = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop";
 
 export default function LandingPage() {
     return (
@@ -27,19 +24,14 @@ export default function LandingPage() {
                     {/* Upload Section */}
                     <section id="demo" className="py-24 relative z-10 px-4">
                         <div className="container mx-auto max-w-5xl">
-                            <motion.div
-                                initial={{ opacity: 0, y: 40 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                className="text-center mb-16"
-                            >
+                            <div className="text-center mb-16">
                                 <h2 className="text-4xl md:text-5xl font-bold mb-6">
                                     Start Creating Magic
                                 </h2>
                                 <p className="text-gray-400 text-lg max-w-2xl mx-auto">
                                     Drag and drop your low-resolution images below and watch our AI engine bring them to life instantly.
                                 </p>
-                            </motion.div>
+                            </div>
 
                             <ImageUploadZone />
                         </div>
@@ -66,12 +58,8 @@ export default function LandingPage() {
                                         desc: "State-of-the-art Real-ESRGAN models for superior detail reconstruction."
                                     }
                                 ].map((feature, i) => (
-                                    <motion.div
+                                    <div
                                         key={i}
-                                        initial={{ opacity: 0, y: 30 }}
-                                        whileInView={{ opacity: 1, y: 0 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: i * 0.2 }}
                                         className="p-8 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/50 transition-colors group"
                                     >
                                         <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center mb-6 text-indigo-400 group-hover:scale-110 transition-transform">
@@ -79,7 +67,7 @@ export default function LandingPage() {
                                         </div>
                                         <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
                                         <p className="text-gray-400 leading-relaxed">{feature.desc}</p>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -122,11 +110,13 @@ export default function LandingPage() {
                                 </div>
 
                                 <div className="relative">
-                                    <BeforeAfterSlider
-                                        beforeImage={BEFORE_IMAGE}
-                                        afterImage={AFTER_IMAGE}
-                                        aspectRatio="4/3"
-                                    />
+                                    <Suspense fallback={<div className="aspect-[4/3] bg-white/5 rounded-2xl animate-pulse" />}>
+                                        <BeforeAfterSlider
+                                            beforeImage={BEFORE_IMAGE}
+                                            afterImage={AFTER_IMAGE}
+                                            aspectRatio="4/3"
+                                        />
+                                    </Suspense>
 
                                     {/* Decorative elements */}
                                     <div className="absolute -top-10 -right-10 w-20 h-20 bg-indigo-500/30 rounded-full blur-xl" />
@@ -146,3 +136,4 @@ export default function LandingPage() {
         </SmoothScroll>
     );
 }
+

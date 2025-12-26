@@ -32,6 +32,7 @@ export const users = mysqlTable(
     (table) => ({
         emailIdx: uniqueIndex("email_idx").on(table.email),
         createdAtIdx: index("created_at_idx").on(table.createdAt),
+        tierIdx: index("tier_idx").on(table.tier),
     })
 );
 
@@ -74,6 +75,8 @@ export const imageOperations = mysqlTable(
         userIdIdx: index("user_id_idx").on(table.userId),
         statusIdx: index("status_idx").on(table.status),
         fileHashIdx: index("file_hash_idx").on(table.fileHash),
+        userStatusIdx: index("user_status_idx").on(table.userId, table.status),
+        createdAtIdx: index("io_created_at_idx").on(table.createdAt),
     })
 );
 

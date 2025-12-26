@@ -20,18 +20,15 @@ const worker = new Worker<JobData>(IMAGE_PROCESSING_QUEUE, async (job: Job<JobDa
     const { operationId, filePaths, config, metadata } = job.data;
 
     try {
-        // Update status to processing
         await db.update(imageOperations)
-            .set({ status: 'processing', startedAt: new Date(), progress: 0 } as any) // Type might need adjustment or schema update for progress
+            .set({ status: 'processing', startedAt: new Date(), progress: 0 } as any)
             .where(eq(imageOperations.id, operationId));
 
-        await job.updateProgress(10);
+        await job.updateProgress(5);
 
         const inputPath = filePaths.original;
         const outputPath = filePaths.processed;
 
-        // Ensure processed directory exists (though API route should have done it)
-        // Check input existence
         try {
             await fs.access(inputPath);
         } catch {
@@ -43,21 +40,19 @@ const worker = new Worker<JobData>(IMAGE_PROCESSING_QUEUE, async (job: Job<JobDa
         let finalHeight: number;
 
         if (config.operationType === 'downscale') {
-            // Calculate dimensions
             const scale = config.scaleFactor;
             finalWidth = Math.round(metadata.width / scale);
             finalHeight = Math.round(metadata.height / scale);
 
-            await job.updateProgress(30);
+            await job.updateProgress(20);
 
-            processedBuffer = await sharp(inputPath)
+            processedBuffer = await sharp(inputPath, { failOn: 'none' })
                 .resize(finalWidth, finalHeight, {
                     kernel: (config.algorithm as any) || 'lanczos3',
                     withoutEnlargement: true
                 })
                 .toBuffer();
 
-            // Save using sharp (handles format)
             const qualityMap: Record<string, number> = { fast: 70, balanced: 85, quality: 95 };
             const quality = qualityMap[config.qualityMode || 'balanced'];
 
@@ -65,33 +60,36 @@ const worker = new Worker<JobData>(IMAGE_PROCESSING_QUEUE, async (job: Job<JobDa
 
             const sharpInstance = sharp(processedBuffer);
             if (metadata.fileExtension === 'png') {
-                await sharpInstance.png({ compressionLevel: 6 }).toFile(outputPath);
+                await sharpInstance.png({ compressionLevel: 6, effort: 3 }).toFile(outputPath);
             } else if (metadata.fileExtension === 'webp') {
-                await sharpInstance.webp({ quality }).toFile(outputPath);
+                await sharpInstance.webp({ quality, effort: 3 }).toFile(outputPath);
             } else {
-                await sharpInstance.jpeg({ quality }).toFile(outputPath);
+                await sharpInstance.jpeg({ quality, mozjpeg: true }).toFile(outputPath);
             }
 
         } else {
-            // Upscale
-            const scale = config.scaleFactor as 2 | 4 | 8; // Cast
+            const scale = config.scaleFactor as 2 | 4 | 8;
             finalWidth = metadata.width * scale;
             finalHeight = metadata.height * scale;
 
-            await job.updateProgress(20);
+            await job.updateProgress(10);
 
-            // Use Real-ESRGAN if available and scale is supported
             const supportedScales = [2, 3, 4];
             if (supportedScales.includes(scale) && await realESRGAN.isAvailable()) {
                 await realESRGAN.upscale({
                     inputPath,
-                    outputPath, // Real-ESRGAN writes directly
+                    outputPath,
                     scale: scale as 2 | 3 | 4,
-                    format: metadata.fileExtension as any
+                    format: (metadata.fileExtension as any) === 'png' ? 'png' : 'jpg'
+                }, async (percent) => {
+                    const scaledProgress = 10 + Math.round(percent * 0.8);
+                    await job.updateProgress(scaledProgress);
+                    await db.update(imageOperations)
+                        .set({ progress: scaledProgress } as any)
+                        .where(eq(imageOperations.id, operationId));
                 });
             } else {
-                // Sharp fallback
-                processedBuffer = await sharp(inputPath)
+                processedBuffer = await sharp(inputPath, { failOn: 'none' })
                     .resize(finalWidth, finalHeight, {
                         kernel: 'lanczos3',
                         fit: 'fill'
@@ -103,22 +101,20 @@ const worker = new Worker<JobData>(IMAGE_PROCESSING_QUEUE, async (job: Job<JobDa
 
                 const sharpInstance = sharp(processedBuffer);
                 if (metadata.fileExtension === 'png') {
-                    await sharpInstance.png({ compressionLevel: 6 }).toFile(outputPath);
+                    await sharpInstance.png({ compressionLevel: 6, effort: 3 }).toFile(outputPath);
                 } else if (metadata.fileExtension === 'webp') {
-                    await sharpInstance.webp({ quality }).toFile(outputPath);
+                    await sharpInstance.webp({ quality, effort: 3 }).toFile(outputPath);
                 } else {
-                    await sharpInstance.jpeg({ quality }).toFile(outputPath);
+                    await sharpInstance.jpeg({ quality, mozjpeg: true }).toFile(outputPath);
                 }
             }
         }
 
-        await job.updateProgress(90);
+        await job.updateProgress(95);
 
-        // Get final stats
         const finalMetadata = await sharp(outputPath).metadata();
         const duration = Date.now() - job.timestamp;
 
-        // Update DB
         await db.update(imageOperations)
             .set({
                 status: 'completed',
@@ -143,7 +139,10 @@ const worker = new Worker<JobData>(IMAGE_PROCESSING_QUEUE, async (job: Job<JobDa
             .where(eq(imageOperations.id, operationId));
         throw error;
     }
-}, { connection: redisConfig });
+}, {
+    connection: redisConfig,
+    concurrency: 5 // Process up to 5 images in parallel
+});
 
 worker.on('completed', job => {
     console.log(`${job.id} has completed!`);
