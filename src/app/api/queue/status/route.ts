@@ -32,11 +32,19 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
+        // Build the processed URL if processing is completed
+        const processedUrl = operation.status === 'completed' && operation.storagePathProcessed
+            ? `/processed/${operation.storagePathProcessed.split('/').pop()}`
+            : null;
+
         return NextResponse.json({
             id: operation.id,
             status: operation.status,
-            progress: operation.progress,
-            resultUrl: operation.storagePathProcessed ? `/processed/${operation.storagePathProcessed.split('/').pop()}` : null,
+            progress: operation.progress ?? 0,
+            processedUrl,
+            processedSize: operation.processedSizeBytes ?? 0,
+            resolutionResult: operation.resolutionResult,
+            processingTimeMs: operation.processingTimeMs,
             error: operation.errorMessage
         });
     } catch (error) {

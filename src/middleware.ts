@@ -5,6 +5,7 @@ const isProtectedRoute = createRouteMatcher([
     '/dashboard(.*)',
     '/api/process(.*)',
     '/api/queue(.*)',
+    '/api/settings(.*)',
 ]);
 
 // Define public routes

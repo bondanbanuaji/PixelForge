@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
     SparklesIcon,
@@ -18,6 +18,7 @@ import { formatBytes, generateId } from '@/lib/utils';
 export default function DashboardPage() {
     const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [serverOperationId, setServerOperationId] = useState<string | null>(null);
 
     const {
         currentFile,
@@ -37,15 +38,73 @@ export default function DashboardPage() {
         setDimensions(dims);
     };
 
+    // Polling function to check processing status
+    const pollStatus = useCallback(async (opId: string, localOpId: string) => {
+        try {
+            const response = await fetch(`/api/queue/status?id=${opId}`);
+            if (!response.ok) {
+                throw new Error('Failed to check status');
+            }
+
+            const data = await response.json();
+
+            // Update progress
+            updateOperation(localOpId, { progress: data.progress });
+
+            if (data.status === 'completed' && data.processedUrl) {
+                // Parse resolution if available
+                let processedResolution = { width: 0, height: 0 };
+                if (data.resolutionResult) {
+                    const [width, height] = data.resolutionResult.split('x').map(Number);
+                    processedResolution = { width, height };
+                }
+
+                completeOperation(
+                    localOpId,
+                    data.processedUrl,
+                    data.processedSize || 0,
+                    processedResolution
+                );
+                setServerOperationId(null);
+                setIsProcessing(false);
+                return true; // Stop polling
+            } else if (data.status === 'failed') {
+                failOperation(localOpId, data.error || 'Processing failed');
+                setServerOperationId(null);
+                setIsProcessing(false);
+                return true; // Stop polling
+            }
+
+            return false; // Continue polling
+        } catch (error) {
+            console.error('Polling error:', error);
+            return false; // Continue polling on error
+        }
+    }, [updateOperation, completeOperation, failOperation]);
+
+    // Effect to handle polling
+    useEffect(() => {
+        if (!serverOperationId || !currentOperation) return;
+
+        const intervalId = setInterval(async () => {
+            const shouldStop = await pollStatus(serverOperationId, currentOperation.id);
+            if (shouldStop) {
+                clearInterval(intervalId);
+            }
+        }, 2000); // Poll every 2 seconds
+
+        return () => clearInterval(intervalId);
+    }, [serverOperationId, currentOperation, pollStatus]);
+
     const handleProcess = async () => {
         if (!currentFile || !dimensions) return;
 
         setIsProcessing(true);
 
-        // Create operation
-        const operationId = generateId();
+        // Create local operation for UI
+        const localOperationId = generateId();
         startOperation({
-            id: operationId,
+            id: localOperationId,
             fileName: currentFile.name,
             originalSize: currentFile.size,
             originalResolution: dimensions,
@@ -53,29 +112,23 @@ export default function DashboardPage() {
             scaleFactor: config.scaleFactor,
             algorithm: config.algorithm,
             qualityMode: config.qualityMode,
-            status: 'processing',
+            status: 'uploading',
             progress: 0,
             createdAt: new Date(),
         });
-
-        // Simulate progress updates
-        const progressInterval = setInterval(() => {
-            updateOperation(operationId, {
-                progress: Math.min(90, (useProcessingStore.getState().currentOperation?.progress || 0) + 10)
-            });
-        }, 500);
 
         try {
             const formData = new FormData();
             formData.append('file', currentFile);
             formData.append('config', JSON.stringify(config));
 
+            // Update to uploading status
+            updateOperation(localOperationId, { status: 'uploading', progress: 10 });
+
             const response = await fetch('/api/process', {
                 method: 'POST',
                 body: formData,
             });
-
-            clearInterval(progressInterval);
 
             if (!response.ok) {
                 const error = await response.json();
@@ -84,20 +137,21 @@ export default function DashboardPage() {
 
             const result = await response.json();
 
-            completeOperation(
-                operationId,
-                result.processedUrl,
-                result.processedSize,
-                result.processedResolution
-            );
+            // Update to processing status and start polling
+            updateOperation(localOperationId, {
+                status: 'processing',
+                progress: 20
+            });
+
+            // Set server operation ID to start polling
+            setServerOperationId(result.operationId);
 
         } catch (error) {
-            clearInterval(progressInterval);
-            failOperation(operationId, error instanceof Error ? error.message : 'Unknown error');
-        } finally {
+            failOperation(localOperationId, error instanceof Error ? error.message : 'Unknown error');
             setIsProcessing(false);
         }
     };
+
 
     const canProcess = currentFile && dimensions && !isProcessing;
 

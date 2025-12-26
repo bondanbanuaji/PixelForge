@@ -75,20 +75,34 @@ export function ProcessingStatus() {
 
             {/* Action Buttons */}
             {currentOperation.status === 'completed' && currentOperation.processedUrl && (
-                <div className="mt-4 flex gap-3">
-                    <a
-                        href={currentOperation.processedUrl}
-                        download={`processed_${currentOperation.fileName}`}
-                        className="btn btn-primary flex-1"
-                    >
-                        Download Result
-                    </a>
-                    <button
-                        onClick={() => window.open(currentOperation.processedUrl, '_blank')}
-                        className="btn btn-outline"
-                    >
-                        Preview
-                    </button>
+                <div className="mt-4 space-y-3">
+                    {/* File Info */}
+                    {currentOperation.processedSize && currentOperation.processedResolution && (
+                        <div className="flex items-center justify-between text-sm text-slate-400 bg-base-300 rounded-lg px-3 py-2">
+                            <span>
+                                {currentOperation.processedResolution.width} × {currentOperation.processedResolution.height}
+                            </span>
+                            <span>
+                                {(currentOperation.processedSize / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <a
+                            href={currentOperation.processedUrl}
+                            download={`${currentOperation.fileName.replace(/\.[^/.]+$/, '')}_processed.${currentOperation.processedUrl.split('.').pop() || 'jpg'}`}
+                            className="btn btn-primary flex-1"
+                        >
+                            Download Result
+                        </a>
+                        <button
+                            onClick={() => window.open(currentOperation.processedUrl, '_blank')}
+                            className="btn btn-outline"
+                        >
+                            Preview
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
