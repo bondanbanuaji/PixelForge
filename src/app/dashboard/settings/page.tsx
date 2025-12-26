@@ -4,17 +4,19 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import {
-    ArrowLeftIcon,
-    UserCircleIcon,
-    Cog6ToothIcon,
-    PaintBrushIcon,
-    ServerStackIcon,
-    TrashIcon,
-    CheckIcon,
-    ExclamationTriangleIcon,
-} from '@heroicons/react/24/outline';
+    ArrowLeft,
+    User,
+    Settings,
+    Palette,
+    HardDrive,
+    Trash2,
+    Check,
+    AlertTriangle,
+    Save
+} from 'lucide-react';
 import { useProcessingStore, type ScaleFactor, type QualityMode, type Algorithm } from '@/stores/processing';
 import { formatBytes, cn } from '@/lib/utils';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
 
 interface UserPreferences {
     defaultScaleFactor: 2 | 4 | 8;
@@ -169,74 +171,102 @@ export default function SettingsPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-base-100 flex items-center justify-center">
+            <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="spinner w-12 h-12"></div>
-                    <p className="text-slate-400">Loading settings...</p>
+                    <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <p className="text-gray-400">Loading settings...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-base-100">
+        <div className="min-h-screen bg-black text-white selection:bg-indigo-500/30 selection:text-indigo-200">
+            {/* Ambient Background */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[10%] right-[10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px]" />
+            </div>
+
             {/* Header */}
-            <header className="glass sticky top-0 z-50">
+            <header className="sticky top-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-4">
-                            <Link href="/dashboard" className="btn btn-ghost btn-sm gap-2">
-                                <ArrowLeftIcon className="w-4 h-4" />
-                                Dashboard
+                    <div className="flex items-center justify-between h-20">
+                        <div className="flex items-center gap-6">
+                            <Link
+                                href="/dashboard"
+                                className="group flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                            >
+                                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                <span className="font-medium">Dashboard</span>
                             </Link>
                         </div>
-                        <h1 className="text-lg font-bold">Settings</h1>
+
+                        <div className="flex items-center gap-3">
+                            <Settings className="w-5 h-5 text-indigo-400" />
+                            <h1 className="text-xl font-bold">Settings</h1>
+                        </div>
+
                         <button
                             onClick={handleSave}
                             disabled={isSaving || !hasChanges}
                             className={cn(
-                                "btn btn-sm gap-2",
-                                hasChanges ? "btn-primary" : "btn-ghost"
+                                "flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium",
+                                hasChanges
+                                    ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                                    : "bg-white/5 text-gray-400 cursor-not-allowed"
                             )}
                         >
                             {isSaving ? (
                                 <>
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                    Saving...
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Saving...</span>
                                 </>
                             ) : showSaved ? (
                                 <>
-                                    <CheckIcon className="w-4 h-4" />
-                                    Saved!
+                                    <Check className="w-4 h-4" />
+                                    <span>Saved!</span>
                                 </>
                             ) : (
-                                'Save'
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    <span>Save Changes</span>
+                                </>
                             )}
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10 space-y-8">
                 {/* Error Alert */}
                 {error && (
-                    <div className="alert alert-error">
-                        <ExclamationTriangleIcon className="w-5 h-5" />
-                        <span>{error}</span>
-                        <button onClick={() => setError(null)} className="btn btn-ghost btn-xs">
-                            Dismiss
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between text-red-200">
+                        <div className="flex items-center gap-3">
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                            <span>{error}</span>
+                        </div>
+                        <button onClick={() => setError(null)} className="hover:text-white transition-colors">
+                            <span className="sr-only">Dismiss</span>
+                            <div className="text-xs uppercase font-bold tracking-wider">Dismiss</div>
                         </button>
                     </div>
                 )}
 
                 {/* Profile Section */}
-                <section className="bg-base-200 rounded-2xl p-6">
+                <section className="glass-card rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <UserCircleIcon className="w-6 h-6 text-primary-400" />
-                        <h2 className="text-lg font-bold">Profile</h2>
+                        <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                            <User className="w-5 h-5 text-indigo-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold">Profile</h2>
+                            <p className="text-sm text-gray-400">Manage your account info</p>
+                        </div>
                     </div>
+
                     <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-2xl font-bold">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl font-bold shadow-2xl shadow-indigo-500/20 border-4 border-black/50">
                             {userData?.avatarUrl || clerkUser?.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
@@ -248,9 +278,10 @@ export default function SettingsPage() {
                                 <span>{(fullName || userData?.email || 'U')[0].toUpperCase()}</span>
                             )}
                         </div>
-                        <div className="flex-1 space-y-3">
+
+                        <div className="flex-1 space-y-4">
                             <div>
-                                <label className="text-sm text-slate-400 block mb-1">Display Name</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2">Display Name</label>
                                 <input
                                     type="text"
                                     value={fullName}
@@ -259,31 +290,44 @@ export default function SettingsPage() {
                                         setHasChanges(true);
                                     }}
                                     placeholder="Enter your name"
-                                    className="input input-bordered w-full bg-base-300"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition-colors"
                                 />
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                                <span>{userData?.email}</span>
-                                <span className="badge badge-primary badge-sm">{userData?.tier || 'FREE'}</span>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                                    {userData?.email}
+                                </span>
+                                <span className="text-xs font-bold bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full uppercase tracking-wider">
+                                    {userData?.tier || 'FREE'}
+                                </span>
                             </div>
+
                             <div className="flex gap-2">
-                                <span className="badge badge-outline">{userData?.totalProcessed || 0} processed</span>
-                                <span className="badge badge-outline">{formatBytes(userData?.storageUsedBytes || 0)} used</span>
+                                <div className="text-xs font-medium text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">
+                                    {userData?.totalProcessed || 0} images processed
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Default Preferences */}
-                <section className="bg-base-200 rounded-2xl p-6">
+                <section className="glass-card rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <Cog6ToothIcon className="w-6 h-6 text-primary-400" />
-                        <h2 className="text-lg font-bold">Default Preferences</h2>
+                        <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                            <Settings className="w-5 h-5 text-pink-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold">Preferences</h2>
+                            <p className="text-sm text-gray-400">Set your default processing options</p>
+                        </div>
                     </div>
-                    <div className="space-y-6">
+
+                    <div className="space-y-8">
                         {/* Default Scale Factor */}
                         <div>
-                            <label className="text-sm text-slate-400 block mb-3">Default Scale Factor</label>
+                            <label className="text-sm text-gray-400 block mb-3">Default Scale Factor</label>
                             <div className="grid grid-cols-3 gap-3">
                                 {([2, 4, 8] as const).map((factor) => (
                                     <button
@@ -292,8 +336,8 @@ export default function SettingsPage() {
                                         className={cn(
                                             'p-3 rounded-xl border-2 font-bold text-lg transition-all',
                                             preferences.defaultScaleFactor === factor
-                                                ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                                                : 'border-slate-700 hover:border-slate-600'
+                                                ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                                                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'
                                         )}
                                     >
                                         {factor}x
@@ -304,25 +348,27 @@ export default function SettingsPage() {
 
                         {/* Default Quality Mode */}
                         <div>
-                            <label className="text-sm text-slate-400 block mb-3">Default Quality Mode</label>
-                            <select
-                                value={preferences.defaultQualityMode}
-                                onChange={(e) => updatePreferences({ defaultQualityMode: e.target.value as UserPreferences['defaultQualityMode'] })}
-                                className="select select-bordered w-full bg-base-300"
-                            >
-                                <option value="fast">Fast - Lower quality, faster processing</option>
-                                <option value="balanced">Balanced - Good quality and speed</option>
-                                <option value="quality">Quality - Best quality, slower</option>
-                            </select>
+                            <label className="text-sm text-gray-400 block mb-3">Default Quality Mode</label>
+                            <div className="relative">
+                                <select
+                                    value={preferences.defaultQualityMode}
+                                    onChange={(e) => updatePreferences({ defaultQualityMode: e.target.value as UserPreferences['defaultQualityMode'] })}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                                >
+                                    <option value="fast">Fast - Lower quality, faster processing</option>
+                                    <option value="balanced">Balanced - Good quality and speed</option>
+                                    <option value="quality">Quality - Best quality, slower</option>
+                                </select>
+                            </div>
                         </div>
 
                         {/* Default Algorithm */}
                         <div>
-                            <label className="text-sm text-slate-400 block mb-3">Default Algorithm</label>
+                            <label className="text-sm text-gray-400 block mb-3">Default Algorithm</label>
                             <select
                                 value={preferences.defaultAlgorithm}
                                 onChange={(e) => updatePreferences({ defaultAlgorithm: e.target.value as UserPreferences['defaultAlgorithm'] })}
-                                className="select select-bordered w-full bg-base-300"
+                                className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
                             >
                                 <option value="realesrgan">Real-ESRGAN - AI-powered upscaling (Best for photos)</option>
                                 <option value="lanczos3">Lanczos3 - Best overall quality</option>
@@ -334,13 +380,17 @@ export default function SettingsPage() {
                 </section>
 
                 {/* Theme Settings */}
-                <section className="bg-base-200 rounded-2xl p-6">
+                <section className="glass-card rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <PaintBrushIcon className="w-6 h-6 text-primary-400" />
-                        <h2 className="text-lg font-bold">Appearance</h2>
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                            <Palette className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold">Appearance</h2>
+                            <p className="text-sm text-gray-400">Customize UI theme</p>
+                        </div>
                     </div>
                     <div>
-                        <label className="text-sm text-slate-400 block mb-3">Theme</label>
                         <div className="grid grid-cols-3 gap-3">
                             {(['dark', 'light', 'system'] as const).map((t) => (
                                 <button
@@ -349,63 +399,76 @@ export default function SettingsPage() {
                                     className={cn(
                                         'p-3 rounded-xl border-2 font-medium capitalize transition-all',
                                         preferences.theme === t
-                                            ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                                            : 'border-slate-700 hover:border-slate-600'
+                                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                                            : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'
                                     )}
                                 >
                                     {t}
                                 </button>
                             ))}
                         </div>
-                        <p className="text-sm text-slate-500 mt-2">
-                            Note: Theme preference will be applied on next page load
+                        <p className="text-xs text-gray-500 mt-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Theme preference will be applied via system settings
                         </p>
                     </div>
                 </section>
 
                 {/* Storage Management */}
-                <section className="bg-base-200 rounded-2xl p-6">
+                <section className="glass-card rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-6">
-                        <ServerStackIcon className="w-6 h-6 text-primary-400" />
-                        <h2 className="text-lg font-bold">Storage</h2>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Storage Used</span>
-                            <span className="font-medium">{formatBytes(userData?.storageUsedBytes || 0)}</span>
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                            <HardDrive className="w-5 h-5 text-blue-400" />
                         </div>
-                        <div className="w-full h-3 bg-base-300 rounded-full overflow-hidden">
+                        <div>
+                            <h2 className="text-lg font-bold">Storage</h2>
+                            <p className="text-sm text-gray-400">Usage and limits</p>
+                        </div>
+                    </div>
+                    <div className="space-y-5">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h3 className="text-2xl font-bold text-white">{formatBytes(userData?.storageUsedBytes || 0)}</h3>
+                                <p className="text-xs text-gray-500">used of 100 MB</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-xs font-bold bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20">
+                                    {(Math.min(100, ((userData?.storageUsedBytes || 0) / (1024 * 1024 * 100)) * 100)).toFixed(1)}% Used
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="w-full h-4 bg-black/40 rounded-full overflow-hidden border border-white/5">
                             <div
-                                className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all duration-500"
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
                                 style={{ width: `${Math.min(100, ((userData?.storageUsedBytes || 0) / (1024 * 1024 * 100)) * 100)}%` }}
                             />
-                        </div>
-                        <div className="flex justify-between text-sm text-slate-500">
-                            <span>{formatBytes(userData?.storageUsedBytes || 0)} of 100 MB</span>
-                            <span>{userData?.tier === 'FREE' ? 'Free Tier' : userData?.tier}</span>
                         </div>
                     </div>
                 </section>
 
                 {/* Danger Zone */}
-                <section className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6">
+                <section className="rounded-2xl p-6 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-colors">
                     <div className="flex items-center gap-3 mb-6">
-                        <TrashIcon className="w-6 h-6 text-red-400" />
-                        <h2 className="text-lg font-bold text-red-400">Danger Zone</h2>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="font-medium">Clear History</h3>
-                                <p className="text-sm text-slate-400">Delete all processing history and reset storage</p>
-                            </div>
-                            <button
-                                onClick={handleClearHistory}
-                                className="btn btn-outline btn-error"
-                            >
-                                Clear All
-                            </button>
+                        <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                            <Trash2 className="w-5 h-5 text-red-400" />
                         </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-red-200">Danger Zone</h2>
+                            <p className="text-sm text-red-400/60">Irreversible actions</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-black/40 border border-red-500/10">
+                        <div>
+                            <h3 className="font-medium text-white">Clear History</h3>
+                            <p className="text-sm text-gray-500">Delete all processed images and reset storage</p>
+                        </div>
+                        <button
+                            onClick={handleClearHistory}
+                            className="px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-all text-sm font-medium"
+                        >
+                            Clear All Data
+                        </button>
                     </div>
                 </section>
             </main>

@@ -1,49 +1,45 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type OperationType = 'upscale' | 'downscale';
 export type ScaleFactor = 2 | 4 | 8;
+export type Algorithm = 'realesrgan' | 'lanczos3' | 'mitchell' | 'cubic';
 export type QualityMode = 'fast' | 'balanced' | 'quality';
-export type Algorithm = 'lanczos3' | 'mitchell' | 'cubic' | 'realesrgan';
-export type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'completed' | 'failed';
+export type OperationStatus = 'uploading' | 'processing' | 'completed' | 'failed';
 
 export interface ImageOperation {
     id: string;
     fileName: string;
     originalSize: number;
-    processedSize?: number;
     originalResolution: { width: number; height: number };
-    processedResolution?: { width: number; height: number };
     operationType: OperationType;
     scaleFactor: ScaleFactor;
     algorithm: Algorithm;
     qualityMode: QualityMode;
-    status: ProcessingStatus;
+    status: OperationStatus;
     progress: number;
-    errorMessage?: string;
-    originalUrl?: string;
+    createdAt: Date | string;
     processedUrl?: string;
-    processingTime?: number;
-    createdAt: Date;
-    completedAt?: Date;
+    processedSize?: number;
+    processedResolution?: { width: number; height: number };
+    error?: string;
 }
 
 export interface ProcessingConfig {
     operationType: OperationType;
     scaleFactor: ScaleFactor;
-    qualityMode: QualityMode;
     algorithm: Algorithm;
+    qualityMode: QualityMode;
 }
 
 interface ProcessingState {
-    // Current operation
+    // Current State
     currentFile: File | null;
     currentOperation: ImageOperation | null;
     config: ProcessingConfig;
 
-    // History
+    // History & Stats
     operations: ImageOperation[];
-
-    // Stats
     totalProcessed: number;
     storageUsed: number;
 
@@ -52,91 +48,93 @@ interface ProcessingState {
     setConfig: (config: Partial<ProcessingConfig>) => void;
     startOperation: (operation: ImageOperation) => void;
     updateOperation: (id: string, updates: Partial<ImageOperation>) => void;
-    completeOperation: (id: string, processedUrl: string, processedSize: number, processedResolution: { width: number; height: number }) => void;
-    failOperation: (id: string, errorMessage: string) => void;
+    completeOperation: (id: string, url: string, size: number, resolution: { width: number; height: number }) => void;
+    failOperation: (id: string, error: string) => void;
     clearCurrentOperation: () => void;
-    addToHistory: (operation: ImageOperation) => void;
     removeFromHistory: (id: string) => void;
     clearHistory: () => void;
 }
 
-export const useProcessingStore = create<ProcessingState>((set, get) => ({
-    // Initial state
-    currentFile: null,
-    currentOperation: null,
-    config: {
-        operationType: 'upscale',
-        scaleFactor: 2,
-        qualityMode: 'balanced',
-        algorithm: 'realesrgan',
-    },
-    operations: [],
-    totalProcessed: 0,
-    storageUsed: 0,
+export const useProcessingStore = create<ProcessingState>()(
+    persist(
+        (set) => ({
+            currentFile: null,
+            currentOperation: null,
+            config: {
+                operationType: 'upscale',
+                scaleFactor: 4,
+                algorithm: 'realesrgan',
+                qualityMode: 'balanced',
+            },
+            operations: [],
+            totalProcessed: 0,
+            storageUsed: 0,
 
-    // Actions
-    setCurrentFile: (file) => set({ currentFile: file }),
+            setCurrentFile: (file) => set({ currentFile: file }),
 
-    setConfig: (newConfig) => set((state) => ({
-        config: { ...state.config, ...newConfig }
-    })),
+            setConfig: (newConfig) => set((state) => ({ config: { ...state.config, ...newConfig } })),
 
-    startOperation: (operation) => set({ currentOperation: operation }),
+            startOperation: (operation) => set({ currentOperation: operation }),
 
-    updateOperation: (id, updates) => set((state) => ({
-        currentOperation: state.currentOperation?.id === id
-            ? { ...state.currentOperation, ...updates }
-            : state.currentOperation,
-        operations: state.operations.map(op =>
-            op.id === id ? { ...op, ...updates } : op
-        )
-    })),
+            updateOperation: (id, updates) => set((state) => {
+                const updatedOp = state.currentOperation?.id === id
+                    ? { ...state.currentOperation, ...updates }
+                    : state.currentOperation;
 
-    completeOperation: (id, processedUrl, processedSize, processedResolution) => {
-        const state = get();
-        const operation = state.currentOperation?.id === id
-            ? state.currentOperation
-            : state.operations.find(op => op.id === id);
+                return { currentOperation: updatedOp };
+            }),
 
-        if (operation) {
-            const completedOp: ImageOperation = {
-                ...operation,
-                status: 'completed',
-                progress: 100,
-                processedUrl,
-                processedSize,
-                processedResolution,
-                completedAt: new Date(),
-                processingTime: Date.now() - operation.createdAt.getTime(),
-            };
+            completeOperation: (id, url, size, resolution) => set((state) => {
+                if (!state.currentOperation || state.currentOperation.id !== id) return state;
 
-            set((state) => ({
-                currentOperation: state.currentOperation?.id === id ? completedOp : state.currentOperation,
-                operations: [completedOp, ...state.operations.filter(op => op.id !== id)],
-                totalProcessed: state.totalProcessed + 1,
-                storageUsed: state.storageUsed + processedSize,
-            }));
+                const completedOp: ImageOperation = {
+                    ...state.currentOperation,
+                    status: 'completed',
+                    progress: 100,
+                    processedUrl: url,
+                    processedSize: size,
+                    processedResolution: resolution,
+                };
+
+                return {
+                    currentOperation: completedOp,
+                    operations: [completedOp, ...state.operations],
+                    totalProcessed: state.totalProcessed + 1,
+                    storageUsed: state.storageUsed + size,
+                };
+            }),
+
+            failOperation: (id, error) => set((state) => {
+                if (!state.currentOperation || state.currentOperation.id !== id) return state;
+
+                const failedOp: ImageOperation = {
+                    ...state.currentOperation,
+                    status: 'failed',
+                    error,
+                };
+
+                return {
+                    currentOperation: failedOp,
+                    operations: [failedOp, ...state.operations],
+                };
+            }),
+
+            clearCurrentOperation: () => set({ currentOperation: null, currentFile: null }),
+
+            removeFromHistory: (id) => set((state) => ({
+                operations: state.operations.filter(op => op.id !== id)
+            })),
+
+            clearHistory: () => set({ operations: [], totalProcessed: 0, storageUsed: 0 }),
+        }),
+        {
+            name: 'pixelforge-storage',
+            partialize: (state) => ({
+                config: state.config,
+                operations: state.operations,
+                totalProcessed: state.totalProcessed,
+                storageUsed: state.storageUsed
+            }),
         }
-    },
-
-    failOperation: (id, errorMessage) => set((state) => ({
-        currentOperation: state.currentOperation?.id === id
-            ? { ...state.currentOperation, status: 'failed', errorMessage, progress: 0 }
-            : state.currentOperation,
-        operations: state.operations.map(op =>
-            op.id === id ? { ...op, status: 'failed', errorMessage, progress: 0 } : op
-        )
-    })),
-
-    clearCurrentOperation: () => set({ currentOperation: null, currentFile: null }),
-
-    addToHistory: (operation) => set((state) => ({
-        operations: [operation, ...state.operations]
-    })),
-
-    removeFromHistory: (id) => set((state) => ({
-        operations: state.operations.filter(op => op.id !== id)
-    })),
-
-    clearHistory: () => set({ operations: [], totalProcessed: 0, storageUsed: 0 }),
-}));
+    )
+);

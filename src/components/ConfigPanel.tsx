@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpIcon, ArrowDownIcon, BoltIcon, SparklesIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { ArrowUp, ArrowDown, Zap, Sparkles, SlidersHorizontal, Settings2 } from 'lucide-react';
 import { cn, calculateNewDimensions, estimateProcessingTime } from '@/lib/utils';
 import { useProcessingStore, type ScaleFactor, type Algorithm } from '@/stores/processing';
 
@@ -28,10 +28,10 @@ export function ConfigPanel({ dimensions }: ConfigPanelProps) {
         ];
 
     return (
-        <div className="bg-base-200 rounded-2xl p-6 space-y-6">
+        <div className="glass-card rounded-2xl p-6 space-y-6">
             <div className="flex items-center gap-2">
-                <AdjustmentsHorizontalIcon className="w-5 h-5 text-primary-400" />
-                <h3 className="font-semibold">Processing Options</h3>
+                <Settings2 className="w-5 h-5 text-indigo-400" />
+                <h3 className="font-semibold text-white">Processing Options</h3>
             </div>
 
             {/* Operation Type */}
@@ -43,23 +43,23 @@ export function ConfigPanel({ dimensions }: ConfigPanelProps) {
                         className={cn(
                             'flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all',
                             config.operationType === 'upscale'
-                                ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                                : 'border-slate-700 hover:border-slate-600'
+                                ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'
                         )}
                     >
-                        <ArrowUpIcon className="w-5 h-5" />
+                        <ArrowUp className="w-5 h-5" />
                         <span className="font-medium">Upscale</span>
                     </button>
                     <button
                         onClick={() => setConfig({ operationType: 'downscale', algorithm: 'lanczos3' })}
                         className={cn(
-                            'flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all',
+                            'flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all duration-300',
                             config.operationType === 'downscale'
-                                ? 'border-accent-500 bg-accent-500/10 text-accent-400'
-                                : 'border-slate-700 hover:border-slate-600'
+                                ? 'border-purple-500 bg-purple-500/20 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                                : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'
                         )}
                     >
-                        <ArrowDownIcon className="w-5 h-5" />
+                        <ArrowDown className="w-5 h-5" />
                         <span className="font-medium">Downscale</span>
                     </button>
                 </div>
@@ -77,9 +77,9 @@ export function ConfigPanel({ dimensions }: ConfigPanelProps) {
                                 'p-3 rounded-xl border-2 font-bold text-lg transition-all',
                                 config.scaleFactor === factor
                                     ? config.operationType === 'upscale'
-                                        ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                                        : 'border-accent-500 bg-accent-500/10 text-accent-400'
-                                    : 'border-slate-700 hover:border-slate-600'
+                                        ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.2)]'
+                                        : 'border-purple-500 bg-purple-500/20 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                                    : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'
                             )}
                         >
                             {factor}x
@@ -93,18 +93,18 @@ export function ConfigPanel({ dimensions }: ConfigPanelProps) {
                 <label className="text-sm text-slate-400">Quality Mode</label>
                 <div className="grid grid-cols-3 gap-3">
                     {([
-                        { value: 'fast', label: 'Fast', icon: BoltIcon },
-                        { value: 'balanced', label: 'Balanced', icon: AdjustmentsHorizontalIcon },
-                        { value: 'quality', label: 'Quality', icon: SparklesIcon },
+                        { value: 'fast', label: 'Fast', icon: Zap },
+                        { value: 'balanced', label: 'Balanced', icon: SlidersHorizontal },
+                        { value: 'quality', label: 'Quality', icon: Sparkles },
                     ] as const).map(({ value, label, icon: Icon }) => (
                         <button
                             key={value}
                             onClick={() => setConfig({ qualityMode: value })}
                             className={cn(
-                                'flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all',
+                                'flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all duration-300',
                                 config.qualityMode === value
-                                    ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                                    : 'border-slate-700 hover:border-slate-600'
+                                    ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.2)]'
+                                    : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/20'
                             )}
                         >
                             <Icon className="w-5 h-5" />
@@ -121,7 +121,7 @@ export function ConfigPanel({ dimensions }: ConfigPanelProps) {
                     <select
                         value={config.algorithm}
                         onChange={(e) => setConfig({ algorithm: e.target.value as Algorithm })}
-                        className="select select-bordered w-full bg-base-300"
+                        className="select select-bordered w-full bg-black/50 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 transition-colors text-white"
                     >
                         {algorithms.map((alg) => (
                             <option key={alg.value} value={alg.value}>
@@ -134,23 +134,23 @@ export function ConfigPanel({ dimensions }: ConfigPanelProps) {
 
             {/* Preview Info */}
             {dimensions && newDimensions && (
-                <div className="p-4 bg-base-300 rounded-xl space-y-3">
+                <div className="p-4 bg-black/40 border border-white/5 rounded-xl space-y-3">
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Original:</span>
-                        <span className="font-medium">{dimensions.width} × {dimensions.height}</span>
+                        <span className="text-gray-400">Original:</span>
+                        <span className="font-medium text-white">{dimensions.width} × {dimensions.height}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Result:</span>
+                        <span className="text-gray-400">Result:</span>
                         <span className={cn(
                             'font-medium',
-                            config.operationType === 'upscale' ? 'text-primary-400' : 'text-accent-400'
+                            config.operationType === 'upscale' ? 'text-indigo-400' : 'text-purple-400'
                         )}>
                             {newDimensions.width} × {newDimensions.height}
                         </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">Est. Time:</span>
-                        <span className="font-medium">~{estimatedTime}s</span>
+                        <span className="text-gray-400">Est. Time:</span>
+                        <span className="font-medium text-white">~{estimatedTime}s</span>
                     </div>
                 </div>
             )}

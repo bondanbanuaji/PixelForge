@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProviderWrapper } from "@/components/ClerkProviderWrapper";
+import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,9 +22,11 @@ export default function RootLayout({
 }>) {
     return (
         <ClerkProviderWrapper>
-            <html lang="en" suppressHydrationWarning>
+            <html lang="en" data-theme="pixelforge" className="dark" suppressHydrationWarning>
                 <body className="antialiased">
-                    {children}
+                    <Providers>
+                        {children}
+                    </Providers>
                 </body>
             </html>
         </ClerkProviderWrapper>

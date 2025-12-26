@@ -7,7 +7,7 @@ export function UserButton() {
 
     if (!isLoaded) {
         return (
-            <div className="w-8 h-8 rounded-full bg-base-300 animate-pulse" />
+            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 animate-pulse" />
         );
     }
 
@@ -25,9 +25,9 @@ export function UserButton() {
                 appearance={{
                     elements: {
                         avatarBox: "w-8 h-8",
-                        userButtonPopoverCard: "bg-base-200 border border-slate-700",
-                        userButtonPopoverActionButton: "hover:bg-base-300",
-                        userButtonPopoverActionButtonText: "text-slate-300",
+                        userButtonPopoverCard: "bg-black/90 backdrop-blur-xl border border-white/10 shadow-2xl",
+                        userButtonPopoverActionButton: "hover:bg-white/5",
+                        userButtonPopoverActionButtonText: "text-gray-300",
                         userButtonPopoverFooter: "hidden",
                     },
                 }}
