@@ -23,6 +23,19 @@ export default function RootLayout({
     return (
         <ClerkProviderWrapper>
             <html lang="en" data-theme="pixelforge" className="dark" suppressHydrationWarning>
+                <head>
+                    {/* Blanket override to hide ALL Clerk branding/internal elements */}
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        .cl-footer, 
+                        .cl-internal-ph678c, 
+                        .cl-internal-1au7fio,
+                        .cl-internal-607372,
+                        [data-clerk-branding] {
+                            display: none !important;
+                        }
+                    ` }} />
+                </head>
                 <body className="antialiased">
                     <Providers>
                         {children}

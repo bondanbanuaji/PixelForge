@@ -4,13 +4,7 @@ import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/lib/utils'; // Assuming cn utility exists, usually clsx + tailwind-merge
 
-// --- Utility for class merging if not already existing ---
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+// --- Utility for class merging removed as it exists in @/lib/utils ---
 
 import Link, { LinkProps } from 'next/link';
 
@@ -54,7 +48,7 @@ export const AnimatedButton = React.forwardRef<HTMLButtonElement, AnimatedButton
                 />
 
                 {/* Content */}
-                <span className="relative z-10 flex items-center gap-2">{children}</span>
+                <motion.span className="relative z-10 flex items-center gap-2">{children}</motion.span>
             </>
         );
 

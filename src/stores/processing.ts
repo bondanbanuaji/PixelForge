@@ -87,6 +87,9 @@ export const useProcessingStore = create<ProcessingState>()(
             completeOperation: (id, url, size, resolution) => set((state) => {
                 if (!state.currentOperation || state.currentOperation.id !== id) return state;
 
+                // Check for duplicates in history to avoid duplicate keys
+                const isAlreadyInHistory = state.operations.some(op => op.id === id);
+
                 const completedOp: ImageOperation = {
                     ...state.currentOperation,
                     status: 'completed',
@@ -98,14 +101,17 @@ export const useProcessingStore = create<ProcessingState>()(
 
                 return {
                     currentOperation: completedOp,
-                    operations: [completedOp, ...state.operations],
-                    totalProcessed: state.totalProcessed + 1,
-                    storageUsed: state.storageUsed + size,
+                    operations: isAlreadyInHistory ? state.operations : [completedOp, ...state.operations],
+                    totalProcessed: isAlreadyInHistory ? state.totalProcessed : state.totalProcessed + 1,
+                    storageUsed: isAlreadyInHistory ? state.storageUsed : state.storageUsed + size,
                 };
             }),
 
             failOperation: (id, error) => set((state) => {
                 if (!state.currentOperation || state.currentOperation.id !== id) return state;
+
+                // Check for duplicates in history to avoid duplicate keys
+                const isAlreadyInHistory = state.operations.some(op => op.id === id);
 
                 const failedOp: ImageOperation = {
                     ...state.currentOperation,
@@ -115,7 +121,7 @@ export const useProcessingStore = create<ProcessingState>()(
 
                 return {
                     currentOperation: failedOp,
-                    operations: [failedOp, ...state.operations],
+                    operations: isAlreadyInHistory ? state.operations : [failedOp, ...state.operations],
                 };
             }),
 

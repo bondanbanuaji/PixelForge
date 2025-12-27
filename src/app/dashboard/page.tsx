@@ -95,19 +95,34 @@ export default function DashboardPage() {
         }
     }, [updateOperation, completeOperation, failOperation]);
 
-    // Effect to handle polling
+    // Effect to handle polling with recursive setTimeout for better stability
     useEffect(() => {
         if (!serverOperationId || !currentOperation) return;
 
-        const intervalId = setInterval(async () => {
-            const shouldStop = await pollStatus(serverOperationId, currentOperation.id);
-            if (shouldStop) {
-                clearInterval(intervalId);
-            }
-        }, 2000); // Poll every 2 seconds
+        let timeoutId: NodeJS.Timeout;
+        let isActive = true;
 
-        return () => clearInterval(intervalId);
-    }, [serverOperationId, currentOperation, pollStatus]);
+        const poll = async () => {
+            if (!isActive) return;
+
+            const shouldStop = await pollStatus(serverOperationId, currentOperation.id);
+
+            // Only schedule next poll if we shouldn't stop and we're still active
+            if (!shouldStop && isActive) {
+                timeoutId = setTimeout(poll, 2000);
+            }
+        };
+
+        // Start initial poll
+        poll();
+
+        return () => {
+            isActive = false;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, [serverOperationId, currentOperation?.id, pollStatus]);
 
     const handleProcess = async () => {
         if (!currentFile || !dimensions) return;

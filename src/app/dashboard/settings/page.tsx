@@ -15,6 +15,7 @@ import {
     Save
 } from 'lucide-react';
 import { useProcessingStore, type ScaleFactor, type QualityMode, type Algorithm } from '@/stores/processing';
+import { useUserStore } from '@/stores/user';
 import { formatBytes, cn } from '@/lib/utils';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 
@@ -40,6 +41,7 @@ interface UserData {
 export default function SettingsPage() {
     const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
     const { config, setConfig, clearHistory } = useProcessingStore();
+    const { setUserInfo } = useUserStore();
 
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -77,7 +79,13 @@ export default function SettingsPage() {
                 setPreferences(data.user.preferences);
                 setFullName(data.user.fullName || '');
 
-                // Sync with Zustand store
+                // Sync with stores
+                setUserInfo({
+                    fullName: data.user.fullName,
+                    avatarUrl: data.user.avatarUrl,
+                    tier: data.user.tier,
+                });
+
                 setConfig({
                     scaleFactor: data.user.preferences.defaultScaleFactor as ScaleFactor,
                     qualityMode: data.user.preferences.defaultQualityMode as QualityMode,
@@ -89,7 +97,7 @@ export default function SettingsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [setConfig]);
+    }, [setConfig, setUserInfo]);
 
     useEffect(() => {
         if (isClerkLoaded) {
@@ -125,7 +133,11 @@ export default function SettingsPage() {
                 throw new Error(errorData.error || 'Failed to save settings');
             }
 
-            // Sync with Zustand store
+            const resData = await response.json();
+
+            // Sync with stores immediately
+            setUserInfo({ fullName });
+
             setConfig({
                 scaleFactor: preferences.defaultScaleFactor as ScaleFactor,
                 qualityMode: preferences.defaultQualityMode as QualityMode,

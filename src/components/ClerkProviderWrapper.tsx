@@ -2,20 +2,12 @@
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { ReactNode } from "react";
+import { clerkAppearance } from "@/lib/clerk-theme";
 
 export function ClerkProviderWrapper({ children }: { children: ReactNode }) {
     return (
         <ClerkProvider
-            appearance={{
-                variables: {
-                    colorPrimary: "#6366F1",
-                    colorBackground: "#0f172a",
-                    colorInputBackground: "#1e293b",
-                    colorInputText: "#f1f5f9",
-                    colorText: "#f1f5f9",
-                    colorTextSecondary: "#94a3b8",
-                },
-            }}
+            appearance={clerkAppearance}
         >
             {children}
         </ClerkProvider>
