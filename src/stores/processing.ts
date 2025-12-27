@@ -87,9 +87,6 @@ export const useProcessingStore = create<ProcessingState>()(
             completeOperation: (id, url, size, resolution) => set((state) => {
                 if (!state.currentOperation || state.currentOperation.id !== id) return state;
 
-                // Check for duplicates in history to avoid duplicate keys
-                const isAlreadyInHistory = state.operations.some(op => op.id === id);
-
                 const completedOp: ImageOperation = {
                     ...state.currentOperation,
                     status: 'completed',
@@ -99,19 +96,20 @@ export const useProcessingStore = create<ProcessingState>()(
                     processedResolution: resolution,
                 };
 
+                // Filter out any existing operation with the same ID to prevent duplicates
+                const otherOps = state.operations.filter(op => op.id !== id);
+                const wasAlreadyInHistory = otherOps.length < state.operations.length;
+
                 return {
                     currentOperation: completedOp,
-                    operations: isAlreadyInHistory ? state.operations : [completedOp, ...state.operations],
-                    totalProcessed: isAlreadyInHistory ? state.totalProcessed : state.totalProcessed + 1,
-                    storageUsed: isAlreadyInHistory ? state.storageUsed : state.storageUsed + size,
+                    operations: [completedOp, ...otherOps],
+                    totalProcessed: wasAlreadyInHistory ? state.totalProcessed : state.totalProcessed + 1,
+                    storageUsed: wasAlreadyInHistory ? state.storageUsed : state.storageUsed + size,
                 };
             }),
 
             failOperation: (id, error) => set((state) => {
                 if (!state.currentOperation || state.currentOperation.id !== id) return state;
-
-                // Check for duplicates in history to avoid duplicate keys
-                const isAlreadyInHistory = state.operations.some(op => op.id === id);
 
                 const failedOp: ImageOperation = {
                     ...state.currentOperation,
@@ -119,9 +117,12 @@ export const useProcessingStore = create<ProcessingState>()(
                     error,
                 };
 
+                // Filter out any existing operation with the same ID to prevent duplicates
+                const otherOps = state.operations.filter(op => op.id !== id);
+
                 return {
                     currentOperation: failedOp,
-                    operations: isAlreadyInHistory ? state.operations : [failedOp, ...state.operations],
+                    operations: [failedOp, ...otherOps],
                 };
             }),
 
